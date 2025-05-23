@@ -1,11 +1,15 @@
-import { onDummyAgent } from '@/actions/agent'
+// import { onAgent, onDummyAgent } from '@/actions/agent'
 import { styled } from '@/lib/stitches'
-import { $messages, addMessage, updateMessages } from '@/store/store'
+import { $messages, addMessage, updateMessages, $agents } from '@/store/store'
 import { PaperPlaneIcon } from '@radix-ui/react-icons'
 import { Button, Flex, TextArea } from '@radix-ui/themes'
 import { useRef, useState } from 'react'
+import { useStore } from '@nanostores/react'
 import { AgentMenu } from './AgentMenu'
+import { $selectedChatAgents } from '@/store/chatAgents'
 import { AgentSelect } from './AgentSelect'
+import { last } from 'lodash'
+import { onAgent } from '@/actions/agent'
 
 const PromptContainer = styled(Flex, {
   width: '100%',
@@ -28,13 +32,22 @@ const PromptArea = styled(TextArea, {
 function ChatPrompt() {
   const promptRef = useRef(null)
   const [isEmpty, setIsEmpty] = useState(true)
+  const agents = useStore($agents)
+  const selectedAgentIds = useStore($selectedChatAgents)
+
+  // Récupérer le premier agent sélectionné
+  const getSelectedAgent = () => {
+    console.log('getSelectedAgent', selectedAgentIds)
+    if (selectedAgentIds.length === 0) return null
+    return agents.find((agent) => agent.id === selectedAgentIds[0])
+  }
 
   const onTextChange = () => {
     const val = promptRef.current.value || ''
     setIsEmpty(val.trim().length === 0)
   }
-
   const onSendPrompt = async () => {
+    const prompt = promptRef.current.value || ''
     console.log('onSendPrompt', promptRef.current.value)
 
     addMessage({
@@ -48,7 +61,7 @@ function ChatPrompt() {
       role: 'assistant',
       content: '',
       id: Math.random().toString(),
-      completed: false, // not complete yet
+      completed: false,
     }
 
     // add AI response to chat messages
@@ -57,21 +70,43 @@ function ChatPrompt() {
     const cloned = $messages.get()
     const last = cloned.at(-1)
 
-    console.log('last', last)
+    // Récupérer tous les agents sélectionnés
+    const selectedAgents = selectedAgentIds
+      .map((id) => agents.find((agent) => agent.id === id))
+      .filter(Boolean)
 
-    // call agent
-    for await (const token of onDummyAgent()) {
-      console.log('token', token, last)
-      last.content = last.content + token
-      cloned[cloned.length - 1] = {
-        ...last,
+    console.log('Selected agents:', selectedAgents)
+
+    // Message initial
+    let currentPrompt = prompt
+
+    // Traiter le message avec chaque agent séquentiellement
+    for (const agent of selectedAgents) {
+      console.log('Processing with agent:', agent.title)
+
+      const stream = await onAgent({
+        agent: agent,
+        prompt: currentPrompt,
+      })
+
+      let fullResponse = ''
+      for await (const part of stream) {
+        const token = part.choices[0]?.delta?.content || ''
+        fullResponse += token
+
+        last.content = fullResponse
+        cloned[cloned.length - 1] = {
+          ...last,
+        }
+
+        updateMessages([...cloned])
       }
 
-      console.log('cloned', cloned)
-
-      updateMessages([...cloned])
+      // Utiliser la réponse de cet agent comme entrée pour le prochain agent
+      currentPrompt = fullResponse
     }
 
+    // Réinitialiser le champ de texte après l'envoi
     promptRef.current.value = ''
     setIsEmpty(true)
   }
