@@ -4,6 +4,8 @@ import { $messages, addMessage, updateMessages } from '@/store/store'
 import { PaperPlaneIcon } from '@radix-ui/react-icons'
 import { Button, Flex, TextArea } from '@radix-ui/themes'
 import { useRef, useState } from 'react'
+import { AgentMenu } from './AgentMenu'
+import { AgentSelect } from './AgentSelect'
 
 const PromptContainer = styled(Flex, {
   width: '100%',
@@ -97,11 +99,13 @@ function ChatPrompt() {
             }
           }}
         />
+
         <Flex
           justify='start'
           align='center'
           width='100%'>
-          {/* Todo add agent menu here */}
+          <AgentMenu />
+          <AgentSelect />
         </Flex>
         <Flex
           justify='end'

@@ -1,4 +1,5 @@
 import { $agents } from '@/store/store'
+import { $selectedChatAgents, setSelectChatAgents } from '@/store/store'
 import {
   closestCenter,
   DndContext,
@@ -57,7 +58,7 @@ function SortableAgent({ agent, onRemove }) {
 
 export function AgentSelect() {
   const agents = useStore($agents)
-  const selected = [] // Todo
+  const selected = useStore($selectedChatAgents)
 
   const selectedAgents = selected
     .map((id) => agents.find((e) => e.id === id))
@@ -69,15 +70,15 @@ export function AgentSelect() {
       const oldIndex = selected.indexOf(active.id)
       const newIndex = selected.indexOf(over.id)
       const newSelected = arrayMove(selected, oldIndex, newIndex)
-      // setSelectChatAgents(newSelected)
-      // $selectedChatAgents.set(newSelected)
+      setSelectChatAgents(newSelected)
+      $selectedChatAgents.set(newSelected)
     }
   }
 
   const handleRemove = (idToRemove) => {
     const newSelected = selected.filter((id) => id !== idToRemove)
     console.log('handleRemove', idToRemove, newSelected)
-    // setSelectChatAgents(newSelected)
+    setSelectChatAgents(newSelected)
   }
 
   const sensors = useSensors(
