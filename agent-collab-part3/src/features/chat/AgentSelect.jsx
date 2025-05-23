@@ -98,7 +98,8 @@ export function AgentSelect() {
       sensors={sensors}>
       <SortableContext
         items={selected}
-        strategy={horizontalListSortingStrategy}>
+        // strategy={horizontalListSortingStrategy}
+      >
         <Flex wrap='wrap'>
           {selectedAgents.map((agent) => (
             <SortableAgent
